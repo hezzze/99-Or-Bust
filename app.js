@@ -50,12 +50,9 @@ function State(unused, players, points) {
     var turnIdx = 0;
     var direction = true;
 
-
     if (!unused || !players || players.length <= 1) {
         throw ILLEGAL_STATE;
     }
-
-
 
     function nextTurn() {
         turnIdx = (turnIdx + (direction ? 1 : -1)) % players.length;
@@ -82,12 +79,16 @@ function State(unused, players, points) {
     }
 
 
-    this.makeMove = function(player, card) {
+    this.makeMove = function(player, target, card, how) {
         //TODO
 
         if (gameOver) {
             throw GAME_OVER;
         }
+
+
+	//TODO
+	//Add logic to prevent target to be player itself
 
         var rank = card.rank;
 
@@ -151,7 +152,7 @@ function State(unused, players, points) {
                 throw ILLEGAL_RANK_OR_SUIT;
         }
 
-        move(player, card);
+        move(player,target, card);
 
         if (canDraw) {
             //draw a new card
@@ -177,29 +178,37 @@ function State(unused, players, points) {
         nextTurn();
     }
 
-    function playNormal(player, card) {
+    function playNormal(player,target, card) {
         //assume rank can be parse to int
         points += parseInt(card.rank);
     }
 
-    function playReverse() {
-        //TODO
+    function playReverse(player, target, card) {
+       	direction = false;	
     }
 
-    function playExchange() {
-        //TODO
+    function playExchange(player, target, card) {
+	var cards = player.cards;
+	player.cards = target.cards;
+	target.cards = cards;
     }
 
-    function playDrawACard() {
-        //TODO
+    function playDrawACard(player, target, card, how) {
+	var idx = how.drawCardIdx;
+	var card = target.cards[idx];
+	target.cards.remove(idx);
+
+	player.cards.push(card);
+       
     }
 
-    function play1020() {
-        //TODO
+    function play1020(player, target, card, how) {
+	var delta_points = card.rank === "10" ? 10 : 20;
+	points += (how.sub ? -delta_points : delta_points);
     }
 
     function playRevive() {
-        //TODO
+        
     }
 
     function playCurse() {
@@ -217,10 +226,42 @@ function State(unused, players, points) {
     this.getTurn = function() {
         return turn;
     }
+
+    this.getPlayerStateJSON = function(pid) {
+	var me;
+	var opponents = [];
+	for (var i = 0; i < players.length; i++) {
+		p = players[i];
+		if (p.pid === pid) {
+			m = p;
+		} else {
+			opponents.push(new Opponent(p.pid, p.cards.length, p.alive));
+		} 
+	}
+
+	
+	var state =  {
+		me: me,
+		opponents: opponents,
+		points: points,
+		direction: direction,
+		turnId: turn.pid,
+		gameOver: gameOver,
+		used: used
+	};
+
+	return JSON.stringify(state);
+	
+    }
+	
 }
 
 
-
+function Opponent(pid, ncard, alive ) {
+    this.numOfCard = ncard;
+    this.alive = isAlive;
+    this.pid = pid;;
+}
 
 function buildDeck() {
     var deck = [];
