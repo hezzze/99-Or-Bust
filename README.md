@@ -5,10 +5,38 @@
 #### iter 1
 Quick and dirty implementation of the following:
 - Game logic
-- UI
 - Server 
-- Integration
+
+
+#### Models (field name is asis)
+
+```
+//For client side
+Opponent {
+	pid: string,
+	alive: boolean,
+	numOfCard: integer
+}
+```
+
+```
+Card {
+	rank: string,
+	suit: string,
+	isJoker: boolean
+}
+```
+
+```
+Player {
+	pid: string,
+	alive: boolean,
+	cards: list of Card
+}
+'''
+
 
 #### iter 2
 - validation
-
+- UI
+- Integration
