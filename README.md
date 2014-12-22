@@ -33,7 +33,7 @@ Player {
 	alive: boolean,
 	cards: list of Card
 }
-'''
+```
 
 
 #### iter 2
