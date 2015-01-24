@@ -5,7 +5,8 @@
 #### iter 1
 Quick and dirty implementation of the following:
 - Game logic
-- Server 
+- Server
+- Basic game UI
 
 
 #### Models (field name is asis)
@@ -33,7 +34,7 @@ Player {
 	alive: boolean,
 	cards: list of Card
 }
-'''
+```
 
 
 #### iter 2
