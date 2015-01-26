@@ -36,6 +36,23 @@ Player {
 }
 ```
 
+#### Data schemas
+
+server to client
+
+```
+State {
+	me: player,
+	opponents: list of Opponent,
+	points: integer,
+	direction: boolean,
+	turnId: string,
+	gameOver: boolean,
+	used: list of Card
+}
+```
+	
+
 
 #### iter 2
 - validation
