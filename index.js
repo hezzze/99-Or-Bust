@@ -1,11 +1,15 @@
 // Server code
-var app = require('express')();
+var express = require('express');
+var app = express();
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
 
-var _conn_ids = [];
+var _conns = [];
 
 var N_PLAYERS = 3;
+
+app.use("/js", express.static(__dirname + '/js'));
+app.use("/imgs", express.static(__dirname + '/imgs'));
 
 app.get('/', function(req, res) {
     res.sendFile(__dirname + '/index.html');
@@ -14,14 +18,14 @@ app.get('/', function(req, res) {
 io.on('connection', function(socket) {
 
 
-    if (_conn_ids.length < N_PLAYERS) {
-        _conn_ids.push(socket.id);
-        if (_conn_ids.length === N_PLAYERS) {
-            startGame(_conn_ids, socket);
+    if (_conns.length < N_PLAYERS) {
+        _conns.push(socket);
+        if (_conns.length === N_PLAYERS) {
+            startGame(_conns);
         }
     }
 
-    console.log(_conn_ids);
+    console.log(socket.id);
     io.emit('server_update', socket.id + " connected\n");
 });
 
@@ -31,11 +35,11 @@ http.listen(port, function() {
 });
 
 
-function startGame(pids, socket) {
+function startGame(sockets) {
     var deck = buildDeck();
     var players = [];
-    pids.forEach(function(pid) {
-        players.push(new Player(pid))
+    sockets.forEach(function(socket) {
+        players.push(new Player(socket.id))
     });
 
     for (var i = 0; i < 5; i++) {
@@ -48,14 +52,38 @@ function startGame(pids, socket) {
 
     var gameState = new State(deck, players);
 
-    pids.forEach(function(pid) {
-        io.to(pid).emit("game_state", "Game Started!!! Hi, " + pid + '\n'+ gameState.getPlayerStateJSON(pid));
+    sockets.forEach(function(socket) {
+        socket.emit("game_state", {
+            msg: "Game Started!!! Hi, " + socket.id + "\n",
+            state: gameState.getPlayerState(socket.id)
+        });
+
+        socket.on("client_move", function(data) {
+
+            var target;
+            for (var i = 0; i < players.length; i++) {
+                if (data.targetPid === players[i].pid) {
+                    target = players[i];
+                    break;
+                }
+            }
+
+            gameState.makeMove(gameState.getTurn(), new Card(data.rank, data.suit), target, data.how);
+
+            socket.broadcast.emit("game_state", {
+                msg: "Game state updated !!\n",
+                state: gameState.getPlayerState(socket.id)
+            });
+        });
+
     });
+
+
 
 }
 
 // Constants
-var RANKS = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
+var RANKS = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "X", "J", "Q", "K"];
 
 var RED_JOKER = "RJ",
     BLACK_JOKER = "BJ",
@@ -113,6 +141,7 @@ function State(unused, players, points) {
 
     function nextTurn() {
         turnIdx = (turnIdx + (direction ? 1 : -1)) % players.length;
+        if (turnIdx < 0) turnIdx = players.length - 1;
         while (!players[turnIdx].alive) {
             turnIdx = (turnIdx + (direction ? 1 : -1)) % players.length;
         }
@@ -137,6 +166,7 @@ function State(unused, players, points) {
 
 
     this.makeMove = function(player, card, target, how) {
+
         //TODO
 
         if (gameOver) {
@@ -158,6 +188,8 @@ function State(unused, players, points) {
         var rank = card.rank;
         var move, canDraw = true;
 
+
+
         //######## USE CARD ########
         var idx = player.cards.indexOf(card.toString());
 
@@ -167,6 +199,9 @@ function State(unused, players, points) {
             //remove the used card 
             player.cards.remove(idx);
         }
+
+
+
 
         //######## TAKE EFFECT ########
 
@@ -189,7 +224,7 @@ function State(unused, players, points) {
                 move = playExchange;
                 canDraw = false;
                 break;
-            case "10":
+            case "X":
             case "Q":
                 move = play1020;
                 break;
@@ -212,11 +247,11 @@ function State(unused, players, points) {
                 throw ILLEGAL_RANK_OR_SUIT;
         }
 
-        move(player, card, target);
+        move(player, card, target, how);
 
         if (canDraw) {
             //draw a new card
-            player.cards.push(getNextCard());
+            player.cards.push(getNextCard().toString());
         }
 
         //add used card to used pile
@@ -263,11 +298,12 @@ function State(unused, players, points) {
     }
 
     function play1020(player, card, target, how) {
-        var delta_points = card.rank === "10" ? 10 : 20;
-        points += (how.sub ? -delta_points : delta_points);
+        var deltaPoints = card.rank === "X" ? 10 : 20;
+        points += (how.sub ? -deltaPoints : deltaPoints);
     }
 
     function playRevive() {
+        //TODO
 
     }
 
@@ -287,7 +323,7 @@ function State(unused, players, points) {
         return turn;
     }
 
-    this.getPlayerStateJSON = function(pid) {
+    this.getPlayerState = function(pid) {
         var me;
         var opponents = [];
         for (var i = 0; i < players.length; i++) {
@@ -310,7 +346,7 @@ function State(unused, players, points) {
             used: used
         };
 
-        return JSON.stringify(state);
+        return state;
 
     }
 
@@ -408,7 +444,7 @@ function test1() {
 
 
     checkException(1, WRONG_TURN, function() {
-        testState.makeMove(testState.getPlayers()[1], null, new Card("A", HEARTS));
+        testState.makeMove(testState.getPlayers()[1], new Card("A", HEARTS));
     });
 }
 
@@ -453,11 +489,24 @@ function test4() {
 
 }
 
+function test5() {
+    var testState = getNewTestState(99);
+
+    var players = testState.getPlayers();
+
+    players[0].cards = ["4S"];
+
+    testState.makeMove(players[0], new Card("4", SPADES));
+
+    assert(5, testState.getTurn() === players[3]);
+
+}
+
 
 
 
 function runTest() {
-    var tests = [test1, test2, test3, test4];
+    var tests = [test1, test2, test3, test4, test5];
     tests.forEach(function(t) {
         t();
     });
