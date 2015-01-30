@@ -48,7 +48,7 @@ State {
 	opponents: list of Opponent,
 	points: integer,
 	direction: boolean,
-	turnIdx: integer,
+	turnId: string,
 	gameOver: boolean,
 	used: list of Card
 }
