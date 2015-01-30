@@ -14,6 +14,7 @@ Quick and dirty implementation of the following:
 ```
 //For client side
 Opponent {
+	idx: integer,
 	pid: string,
 	alive: boolean,
 	numOfCard: integer
@@ -30,6 +31,7 @@ Card {
 
 ```
 Player {
+	idx: integer,
 	pid: string,
 	alive: boolean,
 	cards: list of Card
