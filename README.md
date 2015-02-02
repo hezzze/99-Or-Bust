@@ -53,6 +53,20 @@ State {
 	used: list of Card
 }
 ```
+
+client to server
+
+```
+Move Data {
+	rank: string
+	suit: string
+	target: integer
+	how {
+		drawCardIdx: integer
+		sub: boolean
+	}
+}
+	
 	
 
 
