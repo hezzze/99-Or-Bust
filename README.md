@@ -15,9 +15,9 @@ Quick and dirty implementation of the following:
 //For client side
 Opponent {
 	idx: integer,
-	pid: string,
+	userName: string,
 	alive: boolean,
-	numOfCard: integer
+	nCards: integer
 }
 ```
 
@@ -32,7 +32,7 @@ Card {
 ```
 Player {
 	idx: integer,
-	pid: string,
+	userName: string,
 	alive: boolean,
 	cards: list of Card
 }
@@ -48,7 +48,8 @@ State {
 	opponents: list of Opponent,
 	points: integer,
 	direction: boolean,
-	turnId: string,
+	turnIdx: integer,
+	turnName: string,
 	gameOver: boolean,
 	used: list of Card
 }
